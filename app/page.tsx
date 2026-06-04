@@ -17,7 +17,7 @@ export default function Home() {
       <div className="animate-in" style={{ textAlign: 'center', position: 'relative', zIndex: 1, maxWidth: '520px' }}>
         <div style={{ marginBottom: '24px' }}>
           <span className="badge badge-amber" style={{ fontSize: '13px', padding: '5px 14px' }}>
-            ✦ QuizCraft
+            ✦ QuizCraft By Ajo Koshy Joseph
           </span>
         </div>
 
