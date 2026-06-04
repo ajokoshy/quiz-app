@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'QuizCraft',
+  title: 'Quiz Craft By Ajo Koshy Joseph',
   description: 'Create and share beautiful quizzes',
 };
 
