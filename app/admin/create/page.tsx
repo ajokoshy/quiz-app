@@ -57,7 +57,7 @@ export default function CreateQuizPage() {
     <main style={{ minHeight: '100vh', paddingBottom: '80px' }}>
       <nav className="nav">
         <div className="container-wide nav-inner">
-          <a href="/" className="nav-logo">Quiz<span>Craft</span></a>
+          <a href="/" className="nav-logo">Quiz<span>Craft</span>By Ajo Koshy Joseph</a>
           <Link href="/admin" className="btn btn-ghost" style={{ padding: '8px 16px', fontSize: '13px' }}>
             ← Dashboard
           </Link>
