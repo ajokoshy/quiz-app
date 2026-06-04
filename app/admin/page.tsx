@@ -120,7 +120,7 @@ export default function AdminPage() {
       {/* Nav */}
       <nav className="nav">
         <div className="container-wide nav-inner">
-          <a href="/" className="nav-logo">Quiz<span>Craft</span></a>
+          <a href="/" className="nav-logo">Quiz Craft<span>By Ajo Koshy Joseph</span></a>
           <div className="flex items-center gap-3">
             <Link href="/admin/create" className="btn btn-primary" style={{ padding: '9px 18px', fontSize: '13px' }}>
               + Create Quiz
