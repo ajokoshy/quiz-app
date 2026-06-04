@@ -306,7 +306,7 @@ export default function QuizPage({ params }: { params: { id: string } }) {
               key={question.id}
               onClick={() => setCurrent(i)}
               style={{
-                width: '32px', height: '32px', borderRadius: '8px', border: 'none', cursor: 'pointer',
+                width: '32px', height: '32px', borderRadius: '8px', cursor: 'pointer',
                 fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '12px', transition: 'all 0.15s ease',
                 background: i === current
                   ? 'var(--accent)'
