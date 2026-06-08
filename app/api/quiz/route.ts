@@ -25,21 +25,58 @@ export async function POST(req: NextRequest) {
     const sql = neon(process.env.DATABASE_URL || '');
 
     // Transaction: create quiz + all 10 questions atomically
-    const quizId = await sql.transaction(async (tx) => {
-      const quizRows = await tx`
-        INSERT INTO quizzes (title) VALUES (${title}) RETURNING id
-      `;
-      const id = quizRows[0].id;
+    const countResult = await sql`
+  SELECT COUNT(*)::int AS cnt
+  FROM attempts
+  WHERE quiz_id = ${params.id}
+`;
 
-      for (let i = 0; i < questions.length; i++) {
-        const q = questions[i];
-        await tx`
-          INSERT INTO questions (quiz_id, question_text, option_a, option_b, option_c, option_d, correct_option, order_index)
-          VALUES (${id}, ${q.question_text}, ${q.option_a}, ${q.option_b}, ${q.option_c}, ${q.option_d}, ${q.correct_option}, ${i})
-        `;
-      }
-      return id;
-    });
+const currentCount = countResult[0].cnt;
+
+if (currentCount >= ATTEMPT_LIMIT) {
+  throw new Error('LIMIT_REACHED');
+}
+
+// Insert attempt
+await sql`
+  INSERT INTO attempts
+    (quiz_id, participant_name, score, total, answers)
+  VALUES
+    (${params.id}, ${participant_name.trim()}, ${score}, ${questions.length}, ${JSON.stringify(answers)})
+`;
+
+const newCount = currentCount + 1;
+
+// Auto archive
+if (newCount >= ATTEMPT_LIMIT) {
+  logger.info('Auto-archiving attempts at limit', {
+    quizId: params.id,
+    count: newCount,
+  });
+
+  const batchResult = await sql`
+    SELECT COALESCE(MAX(batch_number), 0)::int AS max_batch
+    FROM attempts_archive
+    WHERE quiz_id = ${params.id}
+  `;
+
+  const nextBatch = batchResult[0].max_batch + 1;
+  const quizTitle = quiz[0].title;
+
+  await sql`
+    INSERT INTO attempts_archive
+      (original_id, quiz_id, quiz_title, participant_name, score, total, answers, attempted_at, batch_number)
+    SELECT
+      id, quiz_id, ${quizTitle}, participant_name, score, total, answers, attempted_at, ${nextBatch}
+    FROM attempts
+    WHERE quiz_id = ${params.id}
+  `;
+
+  await sql`
+    DELETE FROM attempts
+    WHERE quiz_id = ${params.id}
+  `;
+}
 
     logger.info('Quiz created', { quizId, title });
     return NextResponse.json({ id: quizId });
