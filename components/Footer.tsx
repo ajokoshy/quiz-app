@@ -1,3 +1,5 @@
+'use client';
+
 export default function Footer() {
   return (
     <footer style={{
@@ -19,15 +21,7 @@ export default function Footer() {
           href="https://www.futurenexttechnologies.com"
           target="_blank"
           rel="noopener noreferrer"
-          style={{
-            fontSize: '13px',
-            color: 'var(--accent)',
-            textDecoration: 'none',
-            fontWeight: 500,
-            transition: 'opacity 0.15s',
-          }}
-          onMouseOver={e => (e.currentTarget.style.opacity = '0.75')}
-          onMouseOut={e => (e.currentTarget.style.opacity = '1')}
+          className="footer-link"
         >
           www.futurenexttechnologies.com
         </a>

@@ -333,3 +333,13 @@ tr:hover td { background: var(--surface-2); }
   .card { padding: 18px; }
   .nav-logo-sub { display: none; }
 }
+
+/* ── FOOTER LINK ── */
+.footer-link {
+  font-size: 13px;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+  transition: opacity 0.15s;
+}
+.footer-link:hover { opacity: 0.72; }
