@@ -46,33 +46,33 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       result[q.id] = { chosen, correct: q.correct_option, is_correct: isCorrect };
     }
 
-    // ── TRANSACTION: check limit, save, auto-archive if needed ──
-    await sql.transaction(async (tx) => {
-      // Lock + count in transaction to avoid race conditions
-      const countResult = await tx`
-        SELECT COUNT(*)::int AS cnt FROM attempts WHERE quiz_id = ${params.id}
-      `;
-      const currentCount = countResult[0].cnt;
+    // Check current attempt count BEFORE inserting
+    const countResult = await sql`
+      SELECT COUNT(*)::int AS cnt FROM attempts WHERE quiz_id = ${params.id}
+    `;
+    const currentCount = countResult[0].cnt;
 
-      if (currentCount >= ATTEMPT_LIMIT) {
-        // This will be caught below and returned as 403
-        throw new Error('LIMIT_REACHED');
-      }
+    if (currentCount >= ATTEMPT_LIMIT) {
+      return NextResponse.json({
+        error: 'This quiz has reached its maximum of 100 participants. A new batch will be available shortly.',
+      }, { status: 403 });
+    }
 
-      // Insert the new attempt
-      await tx`
-        INSERT INTO attempts (quiz_id, participant_name, score, total, answers)
-        VALUES (${params.id}, ${participant_name.trim()}, ${score}, ${questions.length}, ${JSON.stringify(answers)})
-      `;
+    // Insert the new attempt
+    await sql`
+      INSERT INTO attempts (quiz_id, participant_name, score, total, answers)
+      VALUES (${params.id}, ${participant_name.trim()}, ${score}, ${questions.length}, ${JSON.stringify(answers)})
+    `;
 
-      const newCount = currentCount + 1;
+    const newCount = currentCount + 1;
 
-      // ── AUTO-ARCHIVE when hitting exactly 100 ──
-      if (newCount >= ATTEMPT_LIMIT) {
+    // ── AUTO-ARCHIVE when hitting exactly 100 ──
+    if (newCount >= ATTEMPT_LIMIT) {
+      try {
         logger.info('Auto-archiving attempts at limit', { quizId: params.id, count: newCount });
 
         // Determine next batch number
-        const batchResult = await tx`
+        const batchResult = await sql`
           SELECT COALESCE(MAX(batch_number), 0)::int AS max_batch
           FROM attempts_archive WHERE quiz_id = ${params.id}
         `;
@@ -80,7 +80,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         const quizTitle = quiz[0].title;
 
         // Copy all attempts to archive
-        await tx`
+        await sql`
           INSERT INTO attempts_archive
             (original_id, quiz_id, quiz_title, participant_name, score, total, answers, attempted_at, batch_number)
           SELECT
@@ -90,21 +90,19 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         `;
 
         // Clear from main table
-        await tx`DELETE FROM attempts WHERE quiz_id = ${params.id}`;
+        await sql`DELETE FROM attempts WHERE quiz_id = ${params.id}`;
 
         logger.info('Auto-archive complete', { quizId: params.id, batch: nextBatch, count: newCount });
+      } catch (archiveErr) {
+        // Archive failure is non-fatal — attempt was already saved, log and continue
+        logger.error('Auto-archive failed (non-fatal)', { quizId: params.id, error: String(archiveErr) });
       }
-    });
+    }
 
     logger.info('Attempt submitted', { quizId: params.id, score, total: questions.length });
     return NextResponse.json({ score, total: questions.length, result });
 
   } catch (err) {
-    if (err instanceof Error && err.message === 'LIMIT_REACHED') {
-      return NextResponse.json({
-        error: 'This quiz has reached its maximum of 100 participants. A new batch will be available shortly.',
-      }, { status: 403 });
-    }
     logger.error('Submit failed', { quizId: params.id, error: String(err) });
     return NextResponse.json({ error: 'Failed to submit quiz. Please try again.' }, { status: 500 });
   }

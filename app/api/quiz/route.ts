@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
-import { neon } from '@neondatabase/serverless';
+import sql from '@/lib/db';
 import { parseBody, CreateQuizSchema } from '@/lib/validation';
 import { getRequestSession } from '@/lib/auth';
 import { logger } from '@/lib/logger';
@@ -22,24 +22,28 @@ export async function POST(req: NextRequest) {
     }
 
     const { title, questions } = parsed.data;
-    const sql = neon(process.env.DATABASE_URL || '');
 
-    // Transaction: create quiz + all 10 questions atomically
-    const quizId = await sql.transaction(async (tx) => {
-      const quizRows = await tx`
-        INSERT INTO quizzes (title) VALUES (${title}) RETURNING id
-      `;
-      const id = quizRows[0].id;
+    // Create quiz first
+    const quizRows = await sql`
+      INSERT INTO quizzes (title) VALUES (${title}) RETURNING id
+    `;
+    const quizId = quizRows[0].id;
 
+    // Insert all 10 questions — if any fail the quiz row stays but questions are partial
+    // We handle this by deleting the quiz on error (manual rollback)
+    try {
       for (let i = 0; i < questions.length; i++) {
         const q = questions[i];
-        await tx`
+        await sql`
           INSERT INTO questions (quiz_id, question_text, option_a, option_b, option_c, option_d, correct_option, order_index)
-          VALUES (${id}, ${q.question_text}, ${q.option_a}, ${q.option_b}, ${q.option_c}, ${q.option_d}, ${q.correct_option}, ${i})
+          VALUES (${quizId}, ${q.question_text}, ${q.option_a}, ${q.option_b}, ${q.option_c}, ${q.option_d}, ${q.correct_option}, ${i})
         `;
       }
-      return id;
-    });
+    } catch (qErr) {
+      // Rollback: delete the quiz (cascades to any partial questions)
+      await sql`DELETE FROM quizzes WHERE id = ${quizId}`.catch(() => {});
+      throw qErr;
+    }
 
     logger.info('Quiz created', { quizId, title });
     return NextResponse.json({ id: quizId });
