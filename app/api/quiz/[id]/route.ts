@@ -13,7 +13,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     if (quiz.length === 0) {
       return NextResponse.json({ error: 'Quiz not found', code: 'NOT_FOUND' }, { status: 404 });
     }
-    if (!quiz[0].is_active) {
+
+    // Normalize boolean (neon can return string or bool)
+    const isActive = quiz[0].is_active === true || quiz[0].is_active === 'true';
+    if (!isActive) {
       return NextResponse.json({ error: 'This quiz is not available now.', code: 'INACTIVE' }, { status: 403 });
     }
 

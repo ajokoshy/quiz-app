@@ -36,6 +36,28 @@ export default function QuizPage({ params }: { params: { id: string } }) {
       .catch(() => { setErrorMsg('Failed to load quiz.'); setScreen('error'); });
   }, [params.id]);
 
+
+  async function checkAgain() {
+    setScreen('loading');
+    try {
+      const res = await fetch(`/api/quiz/${params.id}`);
+      const data = await res.json();
+      if (data.code === 'INACTIVE' || data.code === 'NOT_FOUND') {
+        setScreen('unavailable');
+      } else if (data.error) {
+        setErrorMsg(data.error);
+        setScreen('error');
+      } else {
+        setQuiz(data.quiz);
+        setQuestions(data.questions);
+        setScreen('name');
+      }
+    } catch {
+      setErrorMsg('Failed to load quiz.');
+      setScreen('error');
+    }
+  }
+
   function startQuiz() {
     if (!name.trim()) return;
     setCurrent(0); setAnswers({}); setScreen('quiz');
@@ -93,9 +115,16 @@ export default function QuizPage({ params }: { params: { id: string } }) {
           <h2 style={{ fontWeight: 800, fontSize: '22px', marginBottom: '12px', color: 'var(--text)' }}>
             This Quiz is not available now.
           </h2>
-          <p className="text-secondary" style={{ fontSize: '15px', lineHeight: 1.7 }}>
+          <p className="text-secondary" style={{ fontSize: '15px', lineHeight: 1.7, marginBottom: '24px' }}>
             This quiz has been paused or removed by the administrator. Please contact them for more information.
           </p>
+          <button
+            className="btn btn-secondary"
+            onClick={checkAgain}
+            style={{ fontSize: '14px', margin: '0 auto' }}
+          >
+            ↻ Check Again
+          </button>
         </div>
       </div>
       <Footer />
