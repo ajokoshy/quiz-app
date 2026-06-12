@@ -26,7 +26,9 @@ export default function QuizPage({ params }: { params: { id: string } }) {
   const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
-    fetch(`/api/quiz/${params.id}`)
+    fetch(`/api/quiz/${params.id}`, {
+  cache: 'no-store'
+})
       .then(r => r.json())
       .then(data => {
         if (data.code === 'INACTIVE' || data.code === 'NOT_FOUND') { setScreen('unavailable'); return; }
@@ -40,7 +42,9 @@ export default function QuizPage({ params }: { params: { id: string } }) {
   async function checkAgain() {
     setScreen('loading');
     try {
-      const res = await fetch(`/api/quiz/${params.id}`);
+      const res = await fetch(`/api/quiz/${params.id}`, {
+  cache: 'no-store'
+});
       const data = await res.json();
       if (data.code === 'INACTIVE' || data.code === 'NOT_FOUND') {
         setScreen('unavailable');
