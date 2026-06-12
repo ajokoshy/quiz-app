@@ -54,12 +54,18 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     await sql`BEGIN`;
     try {
       // Lock the rows for this quiz so concurrent submissions queue up
-      const countResult = await sql`
-        SELECT COUNT(*)::int AS cnt
-        FROM attempts
-        WHERE quiz_id = ${params.id}
-        FOR UPDATE
-      `;
+      await sql`
+  SELECT id
+  FROM quizzes
+  WHERE id = ${params.id}
+  FOR UPDATE
+`;
+
+const countResult = await sql`
+  SELECT COUNT(*)::int AS cnt
+  FROM attempts
+  WHERE quiz_id = ${params.id}
+`;
       // Note: FOR UPDATE on an aggregate requires a subquery in strict SQL,
       // but Neon/Postgres accepts it; alternatively lock the quizzes row:
       // SELECT id FROM quizzes WHERE id = ${params.id} FOR UPDATE
