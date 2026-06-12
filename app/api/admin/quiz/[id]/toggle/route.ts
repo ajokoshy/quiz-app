@@ -6,7 +6,7 @@ import { logger } from '@/lib/logger';
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     // Ensure is_active column exists
-    await sql`ALTER TABLE quizzes ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT true`;
+    // await sql`ALTER TABLE quizzes ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT true`;
 
     // Read current value first
     const current = await sql`SELECT is_active FROM quizzes WHERE id = ${params.id}`;
