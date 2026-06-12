@@ -26,22 +26,27 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const quizId = searchParams.get('quiz_id');
 
-    const archived = quizId
-      console.log("ARCHIVE COUNT:", archived.length);
+   let archived;
+
+if (quizId) {
+  archived = await sql`
+    SELECT id, original_id, quiz_id, quiz_title, participant_name,
+           score, total, attempted_at, archived_at, batch_number
+    FROM attempts_archive
+    WHERE quiz_id = ${quizId}
+    ORDER BY batch_number DESC, attempted_at DESC
+  `;
+} else {
+  archived = await sql`
+    SELECT id, original_id, quiz_id, quiz_title, participant_name,
+           score, total, attempted_at, archived_at, batch_number
+    FROM attempts_archive
+    ORDER BY archived_at DESC, batch_number DESC, attempted_at DESC
+  `;
+}
+
+console.log("ARCHIVE COUNT:", archived.length);
 console.log("FIRST ARCHIVE:", archived[0]);
-      ? await sql`
-          SELECT id, original_id, quiz_id, quiz_title, participant_name,
-                 score, total, attempted_at, archived_at, batch_number
-          FROM attempts_archive
-          WHERE quiz_id = ${quizId}
-          ORDER BY batch_number DESC, attempted_at DESC
-        `
-      : await sql`
-          SELECT id, original_id, quiz_id, quiz_title, participant_name,
-                 score, total, attempted_at, archived_at, batch_number
-          FROM attempts_archive
-          ORDER BY archived_at DESC, batch_number DESC, attempted_at DESC
-        `;
 
     // Summary: count per quiz per batch
     let summary;
