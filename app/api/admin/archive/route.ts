@@ -44,20 +44,41 @@ console.log("FIRST ARCHIVE:", archived[0]);
         `;
 
     // Summary: count per quiz per batch
-    const summary = await sql`
-      SELECT
-        quiz_id, quiz_title,
-        batch_number,
-        COUNT(*)::int AS count,
-        AVG(score::float / total * 100)::numeric(5,1) AS avg_score_pct,
-        MAX(score)::int AS highest_score,
-        MIN(score)::int AS lowest_score,
-        MAX(archived_at) AS archived_at
-      FROM attempts_archive
-      ${quizId ? sql`WHERE quiz_id = ${quizId}` : sql``}
-      GROUP BY quiz_id, quiz_title, batch_number
-      ORDER BY archived_at DESC
-    `;
+    let summary;
+
+if (quizId) {
+  summary = await sql`
+    SELECT
+      quiz_id,
+      quiz_title,
+      batch_number,
+      COUNT(*)::int AS count,
+      AVG(score::float / total * 100)::numeric(5,1) AS avg_score_pct,
+      MAX(score)::int AS highest_score,
+      MIN(score)::int AS lowest_score,
+      MAX(archived_at) AS archived_at
+    FROM attempts_archive
+    WHERE quiz_id = ${quizId}
+    GROUP BY quiz_id, quiz_title, batch_number
+    ORDER BY archived_at DESC
+  `;
+} else {
+  summary = await sql`
+    SELECT
+      quiz_id,
+      quiz_title,
+      batch_number,
+      COUNT(*)::int AS count,
+      AVG(score::float / total * 100)::numeric(5,1) AS avg_score_pct,
+      MAX(score)::int AS highest_score,
+      MIN(score)::int AS lowest_score,
+      MAX(score)::int AS lowest_score,
+      MAX(archived_at) AS archived_at
+    FROM attempts_archive
+    GROUP BY quiz_id, quiz_title, batch_number
+    ORDER BY archived_at DESC
+  `;
+}
 
     return NextResponse.json({ archived, summary }, {
       headers: { 'Cache-Control': 'no-store' },
