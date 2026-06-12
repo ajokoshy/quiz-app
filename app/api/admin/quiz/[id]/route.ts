@@ -5,13 +5,9 @@ import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    // Self-healing: ensure is_active column exists
-    await sql`ALTER TABLE quizzes ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT true`;
-
     const quiz = await sql`SELECT * FROM quizzes WHERE id = ${params.id}`;
     if (quiz.length === 0) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-    // Normalize boolean (neon serverless can return boolean or string)
     const quizData = { ...quiz[0], is_active: quiz[0].is_active === true || quiz[0].is_active === 'true' };
     const questions = await sql`
       SELECT * FROM questions WHERE quiz_id = ${params.id} ORDER BY order_index

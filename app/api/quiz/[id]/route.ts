@@ -6,16 +6,12 @@ import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    // Self-healing: ensure is_active column exists
-    await sql`ALTER TABLE quizzes ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT true`;
-
     const quiz = await sql`SELECT id, title, is_active FROM quizzes WHERE id = ${params.id}`;
 
     if (quiz.length === 0) {
       return NextResponse.json({ error: 'Quiz not found', code: 'NOT_FOUND' }, { status: 404 });
     }
 
-    // Normalize boolean (neon can return string or bool)
     const isActive = quiz[0].is_active === true || quiz[0].is_active === 'true';
     if (!isActive) {
       return NextResponse.json({ error: 'This quiz is not available now.', code: 'INACTIVE' }, { status: 403 });

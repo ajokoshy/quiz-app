@@ -5,8 +5,6 @@ import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
-    await sql`ALTER TABLE quizzes ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT true`;
-
     const quizzes = await sql`
       SELECT q.id, q.title,
         (q.is_active = true)::boolean AS is_active,
@@ -18,7 +16,6 @@ export async function GET() {
       ORDER BY q.created_at DESC
     `;
 
-    // Normalize is_active to JS boolean (neon can return string or bool)
     const normalized = quizzes.map((q: any) => ({
       ...q,
       is_active: q.is_active === true || q.is_active === 'true',

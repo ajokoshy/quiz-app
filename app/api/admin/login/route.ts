@@ -4,6 +4,7 @@ import { createSessionToken, sessionCookieOptions, clearSessionCookieOptions } f
 import { checkRateLimit, recordFailedAttempt, recordSuccessfulLogin } from '@/lib/rateLimit';
 import { parseBody, LoginSchema } from '@/lib/validation';
 import { logger } from '@/lib/logger';
+import { timingSafeCompare } from '@/lib/crypto';
 
 function getIP(req: NextRequest): string {
   return (
@@ -17,7 +18,7 @@ export async function POST(req: NextRequest) {
   const ip = getIP(req);
   try {
     // Rate limit check
-    const rateCheck = checkRateLimit(ip);
+    const rateCheck = await checkRateLimit(ip);
     if (!rateCheck.allowed) {
       logger.warn('Login blocked by rate limit', { ip });
       return NextResponse.json(
@@ -30,27 +31,21 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}));
     const parsed = parseBody(LoginSchema, body);
     if (!parsed.success) {
-      recordFailedAttempt(ip);
+      await recordFailedAttempt(ip);
       return NextResponse.json({ error: 'Invalid credentials.' }, { status: 400 });
     }
 
     const { username, password } = parsed.data;
 
-    // Validate against env vars with constant-time comparison
-    const expectedUsername = process.env.ADMIN_USERNAME || '';
-    const expectedPassword = process.env.ADMIN_PASSWORD || '';
+    const expectedUsername = process.env.ADMIN_USERNAME ?? '';
+    const expectedPassword = process.env.ADMIN_PASSWORD ?? '';
 
-    let usernameMatch = username.length === expectedUsername.length;
-    let passwordMatch = password.length === expectedPassword.length;
-    for (let i = 0; i < Math.max(username.length, expectedUsername.length); i++) {
-      if (username[i] !== expectedUsername[i]) usernameMatch = false;
-    }
-    for (let i = 0; i < Math.max(password.length, expectedPassword.length); i++) {
-      if (password[i] !== expectedPassword[i]) passwordMatch = false;
-    }
+    // Use crypto.timingSafeEqual to prevent timing-based enumeration attacks
+    const usernameMatch = timingSafeCompare(username, expectedUsername);
+    const passwordMatch = timingSafeCompare(password, expectedPassword);
 
     if (!usernameMatch || !passwordMatch) {
-      const result = recordFailedAttempt(ip);
+      const result = await recordFailedAttempt(ip);
       logger.warn('Failed login attempt', { ip, blocked: result.blocked });
       const msg = result.blocked
         ? 'Too many failed attempts. Try again in 5 minutes.'
@@ -59,7 +54,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Success
-    recordSuccessfulLogin(ip);
+    await recordSuccessfulLogin(ip);
     const token = await createSessionToken();
     logger.info('Admin login successful', { ip });
 

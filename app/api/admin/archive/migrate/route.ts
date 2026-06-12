@@ -1,37 +1,21 @@
 export const dynamic = 'force-dynamic';
-import { NextRequest, NextResponse } from 'next/server';
-import sql from '@/lib/db';
-import { logger } from '@/lib/logger';
+import { NextResponse } from 'next/server';
 
-// One-time migration — safe to call multiple times (uses IF NOT EXISTS / ADD COLUMN IF NOT EXISTS)
-export async function POST(req: NextRequest) {
-  try {
-    // Create attempts_archive if missing
-    await sql`
-      CREATE TABLE IF NOT EXISTS attempts_archive (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        original_id UUID NOT NULL,
-        quiz_id UUID NOT NULL,
-        quiz_title TEXT NOT NULL,
-        participant_name TEXT NOT NULL,
-        score INT NOT NULL,
-        total INT NOT NULL,
-        answers JSONB,
-        attempted_at TIMESTAMP NOT NULL,
-        archived_at TIMESTAMP DEFAULT NOW(),
-        batch_number INT NOT NULL DEFAULT 1
-      )
-    `;
-
-    // Add is_active to quizzes if missing
-    await sql`
-      ALTER TABLE quizzes ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT true
-    `;
-
-    logger.info('Migration complete: attempts_archive + is_active column');
-    return NextResponse.json({ ok: true, message: 'Migration complete. All tables are ready.' });
-  } catch (err) {
-    logger.error('Migration failed', { error: String(err) });
-    return NextResponse.json({ error: 'Migration failed: ' + String(err) }, { status: 500 });
-  }
+/**
+ * This endpoint previously ran inline DDL.
+ * Schema migrations have been moved to scripts/migrations/ and are
+ * applied via `npm run db:migrate` before deploying.
+ *
+ * This stub is kept so existing callers receive a clear explanation
+ * rather than a 404.
+ */
+export async function POST() {
+  return NextResponse.json(
+    {
+      ok: false,
+      message:
+        'Inline migrations have been removed. Run `npm run db:migrate` from your CLI to apply schema changes.',
+    },
+    { status: 410 }  // 410 Gone — intentionally retired
+  );
 }

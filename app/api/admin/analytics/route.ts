@@ -5,24 +5,6 @@ import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
   try {
-    // Self-healing: ensure required columns and tables exist
-    await sql`ALTER TABLE quizzes ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT true`;
-    await sql`
-      CREATE TABLE IF NOT EXISTS attempts_archive (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        original_id UUID NOT NULL,
-        quiz_id UUID NOT NULL,
-        quiz_title TEXT NOT NULL,
-        participant_name TEXT NOT NULL,
-        score INT NOT NULL,
-        total INT NOT NULL,
-        answers JSONB,
-        attempted_at TIMESTAMP NOT NULL,
-        archived_at TIMESTAMP DEFAULT NOW(),
-        batch_number INT NOT NULL DEFAULT 1
-      )
-    `;
-
     const [overview, perQuiz, recentAttempts] = await Promise.all([
       // Overall platform stats — includes both live and archived attempts
       sql`
