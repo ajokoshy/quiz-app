@@ -27,6 +27,8 @@ export async function GET(req: NextRequest) {
     const quizId = searchParams.get('quiz_id');
 
     const archived = quizId
+      console.log("ARCHIVE COUNT:", archived.length);
+console.log("FIRST ARCHIVE:", archived[0]);
       ? await sql`
           SELECT id, original_id, quiz_id, quiz_title, participant_name,
                  score, total, attempted_at, archived_at, batch_number
