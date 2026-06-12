@@ -72,7 +72,6 @@ if (quizId) {
       AVG(score::float / total * 100)::numeric(5,1) AS avg_score_pct,
       MAX(score)::int AS highest_score,
       MIN(score)::int AS lowest_score,
-      MAX(score)::int AS lowest_score,
       MAX(archived_at) AS archived_at
     FROM attempts_archive
     GROUP BY quiz_id, quiz_title, batch_number
